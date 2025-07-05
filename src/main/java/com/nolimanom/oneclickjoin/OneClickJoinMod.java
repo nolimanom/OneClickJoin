@@ -4,10 +4,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.ConnectingScreen;
 import net.minecraft.client.gui.screen.MainMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.MultiplayerScreen;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -52,7 +54,7 @@ public class OneClickJoinMod {
 
                 event.addWidget(joinButton);
 
-                // Java 8 совместимость — собираем вручную
+                // Java 8 compatibility — manually collect widgets
                 List<Widget> widgets = new java.util.ArrayList<>();
                 for (Object o : gui.children()) {
                     if (o instanceof Widget) {
@@ -60,7 +62,7 @@ public class OneClickJoinMod {
                     }
                 }
 
-                // Отключаем все кроме своей
+                // Disable all buttons except our joinButton
                 for (Widget w : widgets) {
                     if (w != joinButton) {
                         w.active = false;
@@ -78,10 +80,10 @@ public class OneClickJoinMod {
         File configFile = new File("config/oneclickjoin-common.toml");
         try {
             if (configFile.exists()) {
-                // Запускаем notepad.exe с файлом конфига
+                // Open the config file using notepad.exe
                 Runtime.getRuntime().exec(new String[]{"notepad.exe", configFile.getAbsolutePath()});
             } else {
-                // Если файла нет, открываем папку config через проводник
+                // If config file does not exist, open the config folder
                 File configFolder = new File("config");
                 if (Desktop.isDesktopSupported()) {
                     Desktop.getDesktop().open(configFolder);
@@ -93,10 +95,11 @@ public class OneClickJoinMod {
             e.printStackTrace();
         }
     }
-    
+
     @SubscribeEvent
     public void onMouseClicked(GuiScreenEvent.MouseClickedEvent.Pre event) {
         if (event.getGui() instanceof MainMenuScreen && joinButton != null) {
+            // Right click on join button opens config file
             if (joinButton.isMouseOver(event.getMouseX(), event.getMouseY()) && event.getButton() == 1) {
                 if (!CONFIG.disableSettings.get()) {
                     openConfigFile();
@@ -105,7 +108,6 @@ public class OneClickJoinMod {
             }
         }
     }
-
 
     private void connectToServer(Screen parent) {
         String ipPort = CONFIG.serverIpPort.get();
@@ -118,6 +120,15 @@ public class OneClickJoinMod {
         mc.setScreen(new ConnectingScreen(parent, mc, data));
     }
 
+    @SubscribeEvent
+    public void onGuiOpen(GuiOpenEvent event) {
+        // Redirect the multiplayer screen to the main menu to prevent going back to server list after manual exit
+        if (event.getGui() instanceof MultiplayerScreen) {
+            event.setGui(new MainMenuScreen());
+        }
+        // Do not touch DisconnectedScreen so that kick/errors show properly
+    }
+
     public static class Config {
         public static ForgeConfigSpec.ConfigValue<String> joinButtonText;
         public static ForgeConfigSpec.ConfigValue<String> serverIpPort;
@@ -128,15 +139,15 @@ public class OneClickJoinMod {
             builder.push("general");
 
             joinButtonText = builder
-                    .comment("Текст кнопки Join")
+                    .comment("Join button text")
                     .define("joinButtonText", "Join");
 
             serverIpPort = builder
-                    .comment("IP:порт сервера (например: 127.0.0.1:25565)")
+                    .comment("Server IP:Port (e.g. 127.0.0.1:25565)")
                     .define("serverIpPort", "127.0.0.1:25565");
 
             disableSettings = builder
-                    .comment("Если true, при правом клике кнопки Join настройки не откроются")
+                    .comment("If true, right-clicking the Join button won't open the config file")
                     .define("disableSettings", false);
 
             builder.pop();
