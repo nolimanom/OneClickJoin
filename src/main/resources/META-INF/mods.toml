@@ -1,0 +1,11 @@
+modLoader="javafml"
+loaderVersion="[36,)" # Это версия Forge, например 36.x для 1.16.5
+license="All Rights Reserved"
+
+[[mods]]
+modId="oneclickjoin" # Должен точно совпадать с ID мода в @Mod("oneclickjoin")
+version="1.0"
+displayName="OneClickJoin"
+description='''Автоматически подключает к серверу одной кнопкой.'''
+
+authors="nolimanom"
